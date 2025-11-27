@@ -1,0 +1,67 @@
+:root {
+  --bg: #0b0f19;
+  --panel: #131a29;
+  --muted: #9aa7bd;
+  --text: #e6edf7;
+  --primary: #4c8dff;
+  --primary-600: #2f6bf3;
+  --danger: #ff6b6b;
+  --success: #3ecf8e;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.container { max-width: 840px; margin: 0 auto; padding: 24px; }
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; }
+.title { font-size: 24px; font-weight: 600; }
+.panel { background: var(--panel); border: 1px solid #1f2a3d; border-radius: 12px; }
+.panel.pad { padding: 16px; }
+.grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px; }
+.actions { display:flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:8px; border:1px solid #29415f; background:#172035; color:var(--text); text-decoration:none; cursor:pointer; }
+.btn:hover { background:#172844; }
+.btn.primary { background: var(--primary); border-color: var(--primary-600); color: #081024; font-weight: 600; }
+.btn.primary:hover { background: var(--primary-600); }
+.btn.danger { border-color:#5f2931; background:#35171b; color:#ffd7d7; }
+.btn.danger:hover { background:#411a1f; }
+.badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid #2a3b55; color:var(--muted); }
+.badge.success { border-color:#27503d; color:#b9f6d1; background:#163024; }
+.badge.warn { border-color:#5b4730; color:#ffe0a3; background:#2a2116; }
+
+.todo-item { display:flex; flex-direction: column; gap: 10px; padding:12px; }
+.todo-head { display:flex; justify-content:space-between; align-items:center; }
+.head-left { display:flex; gap:10px; align-items:center; }
+.todo-title { font-weight:700; font-size: 1.375rem; line-height: 1.2; }
+.todo-title-row { display:flex; gap:8px; align-items: baseline; flex-wrap: wrap; }
+.meta-row { display:flex; gap:8px; align-items:center; justify-content: space-between; flex-wrap: wrap; }
+.meta-left { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+.meta-actions { display:flex; gap:6px; align-items:center; }
+.meta-actions .btn { padding:6px 10px; font-size:13px; }
+.todo-left { display:flex; gap:10px; align-items:center; }
+.todo-title { font-weight:600; }
+.todo-desc { color: var(--muted); margin-top: 6px; }
+.resolved .todo-title { text-decoration: line-through; color: #9aa7bd; }
+
+form .field { margin-bottom: 12px; }
+label { display:block; margin-bottom:6px; color: var(--muted); }
+input[type="text"], textarea, input[type="date"] {
+  width: 100%; padding:10px; border-radius:8px; border:1px solid #2a3b55; background:#0e1422; color:var(--text);
+}
+textarea { min-height: 96px; }
+.form-actions { display:flex; gap:8px; margin-top: 8px; }
+
+.messages { margin-bottom: 12px; }
+.message { padding:10px 12px; border-radius:8px; margin-bottom:8px; }
+.message.info { background:#172035; border:1px solid #29415f; }
+.message.success { background:#163024; border:1px solid #27503d; }
+.message.error { background:#35171b; border:1px solid #5f2931; }
+
+a { color: var(--primary); }
+a:hover { color: var(--primary-600); }

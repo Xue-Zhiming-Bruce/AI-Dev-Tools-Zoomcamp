@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}TODOs{% endblock %}
+{% block content %}
+  <div class="panel pad">
+    {% if todos %}
+      <div class="grid">
+        {% for todo in todos %}
+          <div class="todo-item {% if todo.is_resolved %}resolved{% endif %}">
+            <div class="todo-head">
+              <div class="todo-title">{{ todo.title }}</div>
+            </div>
+            <div class="meta-row">
+              <div class="meta-left">
+                {% if todo.is_resolved %}
+                  <span class="badge success">Resolved</span>
+                {% else %}
+                  <span class="badge warn">Open</span>
+                {% endif %}
+                {% if todo.due_date %}
+                  <span class="badge">Due {{ todo.due_date }}</span>
+                {% endif %}
+              </div>
+              <div class="meta-actions actions">
+                <a class="btn" href="{% url 'todos:edit' todo.pk %}">Edit</a>
+                <a class="btn danger" href="{% url 'todos:delete' todo.pk %}">Delete</a>
+                <a class="btn" href="{% url 'todos:resolve' todo.pk %}">{% if todo.is_resolved %}Mark Unresolved{% else %}Mark Resolved{% endif %}</a>
+              </div>
+            </div>
+            {% if todo.description %}
+              <div class="todo-desc">{{ todo.description }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div>No TODOs yet. Create your first one!</div>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Delete TODO{% endblock %}
+{% block content %}
+  <div class="panel pad">
+    <p>Are you sure you want to delete this TODO?</p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-actions">
+        <button class="btn danger" type="submit">Yes, delete</button>
+        <a class="btn" href="{% url 'todos:list' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}
