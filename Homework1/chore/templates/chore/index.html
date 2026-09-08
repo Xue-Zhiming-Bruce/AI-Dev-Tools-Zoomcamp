@@ -6,10 +6,17 @@
 </head>
 <body>
   <h1>Chores</h1>
+
+  <form method="post" action="{% url 'index' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Add chore</button>
+  </form>
+
   {% if chores %}
     <ul>
       {% for chore in chores %}
-        <li>{{ chore.name }}</li>
+        <li>{{ chore.name }} — {% if chore.due_date %}{{ chore.due_date|date:"Y-m-d" }}{% else %}—{% endif %}</li>
       {% endfor %}
     </ul>
   {% else %}
