@@ -20,6 +20,5 @@ def index(request):
 @require_POST
 def mark_done(request, chore_id):
     chore = get_object_or_404(Chore, pk=chore_id)
-    chore.done = True
-    chore.save()
+    chore.complete()
     return redirect("index")
