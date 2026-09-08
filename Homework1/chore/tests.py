@@ -5,7 +5,6 @@ from django.test import TestCase
 
 from .models import Chore
 
-
 class ChoreModelTest(TestCase):
     def test_create_chore_with_due_date(self):
         chore = Chore.objects.create(name="Take out trash", due_date=date(2026, 9, 10))
@@ -61,3 +60,42 @@ class HomeViewTest(TestCase):
         response = self.client.get("/")
         self.assertContains(response, "A — 2026-09-10")
         self.assertContains(response, "B — —")
+
+
+class MarkDoneViewTest(TestCase):
+    def test_done_chore_disappears_from_active_list(self):
+        chore = Chore.objects.create(name="Take out trash")
+        response = self.client.post(f"/chore/{chore.id}/done/")
+        self.assertRedirects(response, "/")
+        self.assertTrue(Chore.objects.get(pk=chore.id).done)
+        self.assertNotContains(self.client.get("/"), "Take out trash")
+
+    def test_done_state_survives_restart(self):
+        chore = Chore.objects.create(name="Water plants")
+        self.client.post(f"/chore/{chore.id}/done/")
+        # Re-read from the database as a fresh server process would.
+        reloaded = Chore.objects.get(pk=chore.id)
+        self.assertTrue(reloaded.done)
+
+    def test_done_is_idempotent(self):
+        chore = Chore.objects.create(name="Dust shelves")
+        self.client.post(f"/chore/{chore.id}/done/")
+        response = self.client.post(f"/chore/{chore.id}/done/")
+        self.assertRedirects(response, "/")
+        self.assertTrue(Chore.objects.get(pk=chore.id).done)
+
+    def test_nonexistent_chore_returns_404(self):
+        response = self.client.post("/chore/9999/done/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_is_not_allowed(self):
+        chore = Chore.objects.create(name="Sweep floor")
+        response = self.client.get(f"/chore/{chore.id}/done/")
+        self.assertEqual(response.status_code, 405)
+        self.assertFalse(Chore.objects.get(pk=chore.id).done)
+
+    def test_done_form_is_on_home_page(self):
+        chore = Chore.objects.create(name="Take out trash")
+        response = self.client.get("/")
+        self.assertContains(response, f"/chore/{chore.id}/done/")
+        self.assertContains(response, ">Done</button>")

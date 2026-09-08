@@ -16,7 +16,13 @@
   {% if chores %}
     <ul>
       {% for chore in chores %}
-        <li>{{ chore.name }} — {% if chore.due_date %}{{ chore.due_date|date:"Y-m-d" }}{% else %}—{% endif %}</li>
+        <li>
+          {{ chore.name }} — {% if chore.due_date %}{{ chore.due_date|date:"Y-m-d" }}{% else %}—{% endif %}
+          <form method="post" action="{% url 'mark_done' chore.id %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit">Done</button>
+          </form>
+        </li>
       {% endfor %}
     </ul>
   {% else %}
