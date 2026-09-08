@@ -1,7 +1,9 @@
 # Chore Bot (Homework1)
 
 Commands
-- (stack not chosen yet — fill in install/test/run as it lands)
+- Install deps: `uv sync`
+- Run dev server: `uv run python manage.py runserver`
+- Run tests: `uv run python manage.py test`
 
 Rules
 - Follow _docs/process.md

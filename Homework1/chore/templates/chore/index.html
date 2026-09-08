@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Chore Manager</title>
+</head>
+<body>
+  <h1>Chores</h1>
+  {% if chores %}
+    <ul>
+      {% for chore in chores %}
+        <li>{{ chore.name }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No chores yet</p>
+  {% endif %}
+</body>
+</html>
