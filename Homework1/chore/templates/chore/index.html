@@ -13,28 +13,33 @@
     <button type="submit">Add chore</button>
   </form>
 
-  {% if chores %}
-    <ul>
-      {% for chore in chores %}
-        <li>
-          {{ chore.name }} — {% if chore.due_date %}{{ chore.due_date|date:"Y-m-d" }}{% else %}—{% endif %}
-          <form method="post" action="{% url 'mark_done' chore.id %}" style="display:inline">
-            {% csrf_token %}
-            <button type="submit">Done</button>
-          </form>
-          {% if chore.due_date %}
-            <form method="post" action="{% url 'snooze' chore.id 'tomorrow' %}" style="display:inline">
-              {% csrf_token %}
-              <button type="submit">Tomorrow</button>
-            </form>
-            <form method="post" action="{% url 'snooze' chore.id 'next-week' %}" style="display:inline">
-              {% csrf_token %}
-              <button type="submit">Next week</button>
-            </form>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
+  {% if has_chores %}
+    {% for group in groups %}
+      <section>
+        <h2>{{ group.label }}</h2>
+        <ul>
+          {% for chore in group.chores %}
+            <li>
+              {{ chore.name }} — {% if chore.due_date %}{{ chore.due_date|date:"Y-m-d" }}{% else %}—{% endif %}
+              <form method="post" action="{% url 'mark_done' chore.id %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit">Done</button>
+              </form>
+              {% if chore.due_date %}
+                <form method="post" action="{% url 'snooze' chore.id 'tomorrow' %}" style="display:inline">
+                  {% csrf_token %}
+                  <button type="submit">Tomorrow</button>
+                </form>
+                <form method="post" action="{% url 'snooze' chore.id 'next-week' %}" style="display:inline">
+                  {% csrf_token %}
+                  <button type="submit">Next week</button>
+                </form>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endfor %}
   {% else %}
     <p>No chores yet</p>
   {% endif %}

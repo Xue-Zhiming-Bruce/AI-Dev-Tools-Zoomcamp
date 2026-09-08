@@ -14,8 +14,22 @@ def index(request):
             return redirect("index")
     else:
         form = ChoreForm()
-    chores = Chore.objects.filter(done=False).order_by("created_at")
-    return render(request, "chore/index.html", {"chores": chores, "form": form})
+    groups = Chore.objects.grouped_by_urgency()
+    group_list = [
+        {"label": label, "chores": groups[key]}
+        for key, label in (
+            ("overdue", "Overdue"),
+            ("due_today", "Due today"),
+            ("upcoming", "Upcoming"),
+            ("undated", "No due date"),
+        )
+    ]
+    has_chores = any(g["chores"].exists() for g in group_list)
+    return render(
+        request,
+        "chore/index.html",
+        {"groups": group_list, "has_chores": has_chores, "form": form},
+    )
 
 
 @require_POST

@@ -1,9 +1,39 @@
 from datetime import date, timedelta
 
 from django.db import models
+from django.utils import timezone
+
+
+class ChoreQuerySet(models.QuerySet):
+    def grouped_by_urgency(self, today=None):
+        """Active chores grouped by due-date urgency, most-urgent-first.
+
+        Exactly one group per chore, decided only by due_date vs `today`
+        (defaults to the local date): due_date < today -> overdue,
+        due_date == today -> due_today, due_date > today -> upcoming,
+        no due_date -> undated. Due today is NOT overdue. Each group is
+        ordered most-urgent-first; ties break oldest created_at first.
+        Templates must not compute dates themselves — today is resolved
+        here, in the model layer.
+        """
+        if today is None:
+            today = timezone.localdate()
+        active = self.filter(done=False)
+        return {
+            "overdue": active.filter(due_date__lt=today).order_by(
+                "due_date", "created_at"
+            ),
+            "due_today": active.filter(due_date=today).order_by("created_at"),
+            "upcoming": active.filter(due_date__gt=today).order_by(
+                "due_date", "created_at"
+            ),
+            "undated": active.filter(due_date__isnull=True).order_by("created_at"),
+        }
 
 
 class Chore(models.Model):
+    objects = ChoreQuerySet.as_manager()
+
     class Recurrence(models.TextChoices):
         NONE = "none", "None"
         DAILY = "daily", "Daily"

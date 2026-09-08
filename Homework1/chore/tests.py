@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.utils import timezone
 
 from .forms import ChoreForm
 from .models import Chore
@@ -410,3 +411,111 @@ class RecurrenceViewTest(TestCase):
         chore = Chore.objects.get(name="Dust shelves")
         self.client.post(f"/chore/{chore.id}/done/")
         self.assertNotContains(self.client.get("/"), "Dust shelves")
+
+
+class UrgencyGroupingTest(TestCase):
+    today = date.today()
+
+    @staticmethod
+    def make(name, due_date=None, minutes_ago=0):
+        chore = Chore.objects.create(name=name, due_date=due_date)
+        if minutes_ago:
+            Chore.objects.filter(pk=chore.pk).update(
+                created_at=timezone.now() - timedelta(minutes=minutes_ago)
+            )
+        return chore
+
+    def test_due_today_is_not_overdue(self):
+        self.make("Feed cat", due_date=self.today)
+        groups = Chore.objects.grouped_by_urgency()
+        self.assertEqual([c.name for c in groups["due_today"]], ["Feed cat"])
+        self.assertFalse(groups["overdue"].exists())
+
+    def test_exactly_one_group_per_chore(self):
+        overdue = self.make("Overdue chore", due_date=self.today - timedelta(days=2))
+        due_today = self.make("Today chore", due_date=self.today)
+        upcoming = self.make("Upcoming chore", due_date=self.today + timedelta(days=3))
+        undated = self.make("Undated chore")
+        groups = Chore.objects.grouped_by_urgency()
+        placements = {
+            key: {c.pk for c in qs} for key, qs in groups.items()
+        }
+        # No overlap between groups.
+        all_assigned = [pk for pks in placements.values() for pk in pks]
+        self.assertEqual(len(all_assigned), len(set(all_assigned)))
+        # Every active chore is assigned exactly once.
+        self.assertEqual(
+            set(all_assigned), {overdue.pk, due_today.pk, upcoming.pk, undated.pk}
+        )
+
+    def test_overdue_sorts_oldest_due_date_first(self):
+        self.make("Mid overdue", due_date=self.today - timedelta(days=2))
+        self.make("Oldest overdue", due_date=self.today - timedelta(days=5))
+        self.make("Recent overdue", due_date=self.today - timedelta(days=1))
+        groups = Chore.objects.grouped_by_urgency()
+        self.assertEqual(
+            [c.name for c in groups["overdue"]],
+            ["Oldest overdue", "Mid overdue", "Recent overdue"],
+        )
+
+    def test_due_today_sorts_oldest_created_first(self):
+        self.make("Second today", due_date=self.today, minutes_ago=10)
+        self.make("First today", due_date=self.today, minutes_ago=30)
+        self.make("Third today", due_date=self.today, minutes_ago=1)
+        groups = Chore.objects.grouped_by_urgency()
+        self.assertEqual(
+            [c.name for c in groups["due_today"]],
+            ["First today", "Second today", "Third today"],
+        )
+
+    def test_upcoming_sorts_soonest_due_date_first(self):
+        self.make("Far upcoming", due_date=self.today + timedelta(days=10))
+        self.make("Soon upcoming", due_date=self.today + timedelta(days=1))
+        self.make("Mid upcoming", due_date=self.today + timedelta(days=4))
+        groups = Chore.objects.grouped_by_urgency()
+        self.assertEqual(
+            [c.name for c in groups["upcoming"]],
+            ["Soon upcoming", "Mid upcoming", "Far upcoming"],
+        )
+
+    def test_undated_sorts_oldest_created_first(self):
+        self.make("Second undated", minutes_ago=10)
+        self.make("First undated", minutes_ago=30)
+        groups = Chore.objects.grouped_by_urgency()
+        self.assertEqual(
+            [c.name for c in groups["undated"]], ["First undated", "Second undated"]
+        )
+
+    def test_done_chores_excluded_from_all_groups(self):
+        done_overdue = self.make("Done overdue", due_date=self.today - timedelta(days=1))
+        done_today = self.make("Done today", due_date=self.today)
+        done_upcoming = self.make("Done upcoming", due_date=self.today + timedelta(days=1))
+        done_undated = self.make("Done undated")
+        for chore in (done_overdue, done_today, done_upcoming, done_undated):
+            Chore.objects.filter(pk=chore.pk).update(done=True)
+        groups = Chore.objects.grouped_by_urgency()
+        for key, qs in groups.items():
+            self.assertFalse(qs.exists(), f"{key} should be empty")
+
+    def test_undated_chores_only_in_undated_group(self):
+        self.make("No date chore")
+        groups = Chore.objects.grouped_by_urgency()
+        self.assertEqual([c.name for c in groups["undated"]], ["No date chore"])
+        for key in ("overdue", "due_today", "upcoming"):
+            self.assertFalse(groups[key].exists())
+
+    def test_home_page_renders_all_group_labels(self):
+        self.make("Overdue chore", due_date=self.today - timedelta(days=1))
+        self.make("Today chore", due_date=self.today)
+        self.make("Upcoming chore", due_date=self.today + timedelta(days=1))
+        self.make("Undated chore")
+        response = self.client.get("/")
+        for label in ("Overdue", "Due today", "Upcoming", "No due date"):
+            self.assertContains(response, label)
+
+    def test_home_page_empty_when_all_chores_done(self):
+        chore = self.make("Only chore")
+        self.client.post(f"/chore/{chore.id}/done/")
+        response = self.client.get("/")
+        self.assertContains(response, "No chores yet")
+        self.assertNotContains(response, "Only chore")
