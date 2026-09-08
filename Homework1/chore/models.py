@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.db import models
 
@@ -51,6 +51,19 @@ class Chore(models.Model):
             self.due_date = self._next_weekday_after(self.due_date)
         else:
             self.done = True
+        self.save()
+
+    def snooze(self, days, from_date=None):
+        """Postpone this chore: set due_date to from_date + `days` calendar
+        days (from_date defaults to today). Only due_date moves — recurrence,
+        weekdays, and done are never touched. Raises ValueError for chores
+        without a due date; nothing changes in that case.
+        """
+        if self.due_date is None:
+            raise ValueError("cannot snooze a chore without a due date")
+        if from_date is None:
+            from_date = date.today()
+        self.due_date = from_date + timedelta(days=days)
         self.save()
 
     def _next_weekday_after(self, from_date):

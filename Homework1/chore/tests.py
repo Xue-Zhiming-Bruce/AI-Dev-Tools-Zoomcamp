@@ -236,6 +236,141 @@ class RecurrenceFormTest(TestCase):
         self.assertIn("Monday", html)
 
 
+class SnoozeModelTest(TestCase):
+    def test_tomorrow_sets_due_date_to_from_date_plus_one(self):
+        chore = Chore.objects.create(name="Trash", due_date=date(2026, 9, 1))
+        chore.snooze(1, from_date=date(2026, 9, 10))
+        chore.refresh_from_db()
+        self.assertEqual(chore.due_date, date(2026, 9, 11))
+
+    def test_next_week_sets_due_date_to_from_date_plus_seven(self):
+        chore = Chore.objects.create(name="Trash", due_date=date(2026, 9, 1))
+        chore.snooze(7, from_date=date(2026, 9, 10))
+        chore.refresh_from_db()
+        self.assertEqual(chore.due_date, date(2026, 9, 17))
+
+    def test_snooze_leaves_recurrence_settings_untouched(self):
+        chore = Chore.objects.create(
+            name="Trash",
+            due_date=date(2026, 9, 7),
+            recurrence=Chore.Recurrence.WEEKLY,
+            weekdays="1,4",
+        )
+        chore.snooze(1, from_date=date(2026, 9, 10))
+        chore.refresh_from_db()
+        self.assertEqual(chore.recurrence, Chore.Recurrence.WEEKLY)
+        self.assertEqual(chore.weekdays, "1,4")
+        self.assertFalse(chore.done)
+
+    def test_snooze_does_not_set_done(self):
+        chore = Chore.objects.create(name="Dust shelves", due_date=date(2026, 9, 1))
+        chore.snooze(1, from_date=date(2026, 9, 10))
+        chore.refresh_from_db()
+        self.assertFalse(chore.done)
+
+    def test_undated_chore_rejected_and_unchanged(self):
+        chore = Chore.objects.create(name="Dust shelves")
+        with self.assertRaises(ValueError):
+            chore.snooze(1, from_date=date(2026, 9, 10))
+        chore.refresh_from_db()
+        self.assertIsNone(chore.due_date)
+        self.assertFalse(chore.done)
+
+    def test_weekly_chore_snoozed_off_weekday_completes_to_next_chosen_weekday(self):
+        # Due Monday 2026-09-07; snoozed to Thursday 2026-09-17 (not a
+        # chosen weekday). Completing must advance to the next chosen
+        # weekday strictly after the new due date: Monday 2026-09-21.
+        chore = Chore.objects.create(
+            name="Trash",
+            due_date=date(2026, 9, 7),
+            recurrence=Chore.Recurrence.WEEKLY,
+            weekdays="1",
+        )
+        chore.snooze(10, from_date=date(2026, 9, 7))
+        chore.refresh_from_db()
+        self.assertEqual(chore.due_date, date(2026, 9, 17))
+        chore.complete()
+        chore.refresh_from_db()
+        self.assertEqual(chore.due_date, date(2026, 9, 21))
+        self.assertFalse(chore.done)
+
+
+class SnoozeViewTest(TestCase):
+    def test_tomorrow_moves_overdue_chore_to_tomorrow(self):
+        chore = Chore.objects.create(name="Trash", due_date=date(2026, 9, 1))
+        response = self.client.post(f"/chore/{chore.id}/snooze/tomorrow/")
+        self.assertRedirects(response, "/")
+        chore.refresh_from_db()
+        self.assertEqual(chore.due_date, date.today() + timedelta(days=1))
+        self.assertFalse(chore.done)
+
+    def test_next_week_moves_chore_seven_calendar_days(self):
+        chore = Chore.objects.create(name="Laundry", due_date=date(2026, 9, 1))
+        self.client.post(f"/chore/{chore.id}/snooze/next-week/")
+        chore.refresh_from_db()
+        self.assertEqual(chore.due_date, date.today() + timedelta(days=7))
+
+    def test_snoozed_chore_shows_new_date_and_stays_in_list(self):
+        chore = Chore.objects.create(name="Trash", due_date=date(2026, 9, 1))
+        self.client.post(f"/chore/{chore.id}/snooze/tomorrow/")
+        response = self.client.get("/")
+        self.assertContains(response, "Trash")
+        self.assertContains(response, (date.today() + timedelta(days=1)).isoformat())
+
+    def test_weekly_chore_snoozed_then_completed_advances_correctly(self):
+        self.client.post(
+            "/",
+            {
+                "name": "Trash",
+                "due_date": "2026-09-07",
+                "recurrence": "weekly",
+                "weekdays": ["1"],
+            },
+        )
+        chore = Chore.objects.get(name="Trash")
+        self.client.post(f"/chore/{chore.id}/snooze/next-week/")
+        chore.refresh_from_db()
+        due = chore.due_date
+        self.assertEqual(due, date.today() + timedelta(days=7))
+        days_ahead = (1 - due.isoweekday()) % 7  # next Monday strictly after
+        expected = due + timedelta(days=days_ahead or 7)
+        self.client.post(f"/chore/{chore.id}/done/")
+        chore.refresh_from_db()
+        self.assertFalse(chore.done)
+        self.assertEqual(chore.due_date, expected)
+        self.assertEqual(chore.due_date.isoweekday(), 1)
+
+    def test_undated_chore_post_returns_400_and_changes_nothing(self):
+        chore = Chore.objects.create(name="Dust shelves")
+        response = self.client.post(f"/chore/{chore.id}/snooze/tomorrow/")
+        self.assertEqual(response.status_code, 400)
+        chore.refresh_from_db()
+        self.assertIsNone(chore.due_date)
+        self.assertFalse(chore.done)
+
+    def test_get_is_not_allowed_and_changes_nothing(self):
+        chore = Chore.objects.create(name="Trash", due_date=date(2026, 9, 1))
+        response = self.client.get(f"/chore/{chore.id}/snooze/tomorrow/")
+        self.assertEqual(response.status_code, 405)
+        chore.refresh_from_db()
+        self.assertEqual(chore.due_date, date(2026, 9, 1))
+
+    def test_nonexistent_chore_returns_404(self):
+        response = self.client.post("/chore/9999/snooze/tomorrow/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_snooze_controls_rendered_only_for_dated_chores(self):
+        Chore.objects.create(name="Trash", due_date=date(2026, 9, 10))
+        Chore.objects.create(name="Dust shelves")
+        response = self.client.get("/")
+        self.assertContains(response, ">Tomorrow</button>")
+        self.assertContains(response, ">Next week</button>")
+        self.assertContains(response, "/snooze/tomorrow/")
+        self.assertContains(response, "/snooze/next-week/")
+        # Exactly one pair of snooze forms: only the dated chore has them.
+        self.assertEqual(response.content.count(b"/snooze/"), 2)
+
+
 class RecurrenceViewTest(TestCase):
     def test_daily_chore_stays_in_list_after_done(self):
         self.client.post(

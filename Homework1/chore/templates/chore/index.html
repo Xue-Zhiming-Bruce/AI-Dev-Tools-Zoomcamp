@@ -22,6 +22,16 @@
             {% csrf_token %}
             <button type="submit">Done</button>
           </form>
+          {% if chore.due_date %}
+            <form method="post" action="{% url 'snooze' chore.id 'tomorrow' %}" style="display:inline">
+              {% csrf_token %}
+              <button type="submit">Tomorrow</button>
+            </form>
+            <form method="post" action="{% url 'snooze' chore.id 'next-week' %}" style="display:inline">
+              {% csrf_token %}
+              <button type="submit">Next week</button>
+            </form>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>
