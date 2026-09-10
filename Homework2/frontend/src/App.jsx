@@ -128,6 +128,10 @@ export default function App() {
         <CardDialog
           card={cardDialog.mode === 'edit' ? cardDialog.card : null}
           onSave={(fields) => handleSaveCard(cardDialog, fields)}
+          onDelete={(card) => {
+            setCardDialog(null)
+            handleDeleteCard(card)
+          }}
           onClose={() => setCardDialog(null)}
         />
       )}

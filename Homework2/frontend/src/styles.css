@@ -215,3 +215,8 @@ h1 {
   border-color: #2563eb;
   color: #fff;
 }
+
+.dialog-actions .danger {
+  color: #cf222e;
+  border-color: #cf222e;
+}

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 
 // Native <dialog> for both creating and editing a card.
-export default function CardDialog({ card, onSave, onClose }) {
+export default function CardDialog({ card, onSave, onDelete, onClose }) {
   const [title, setTitle] = useState(card?.title ?? '')
   const [notes, setNotes] = useState(card?.notes ?? '')
   const [dueDate, setDueDate] = useState(card?.due_date ?? '')
@@ -55,6 +55,15 @@ export default function CardDialog({ card, onSave, onClose }) {
           />
         </label>
         <menu className="dialog-actions">
+          {card && (
+            <button
+              type="button"
+              className="danger"
+              onClick={() => onDelete(card)}
+            >
+              Delete
+            </button>
+          )}
           <button type="button" onClick={onClose}>
             Cancel
           </button>
