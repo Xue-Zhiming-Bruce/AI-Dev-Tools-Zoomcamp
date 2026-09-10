@@ -1,0 +1,217 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #f0f2f5;
+  color: #1f2328;
+}
+
+.board-wrap {
+  padding: 16px 24px;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: 22px;
+}
+
+.board {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 24px;
+}
+
+.column {
+  background: #ebecf0;
+  border-radius: 8px;
+  width: 280px;
+  flex-shrink: 0;
+  padding: 8px;
+  position: relative;
+}
+
+.column-dragged {
+  opacity: 0.4;
+}
+
+.column-drop-marker,
+.column-drop-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -7px;
+  width: 3px;
+  border-radius: 2px;
+  background: #2563eb;
+}
+
+.column-drop-edge {
+  left: auto;
+  right: -7px;
+}
+
+.column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  cursor: grab;
+}
+
+.column-header h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.column-title-input {
+  width: 100%;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 2px 4px;
+}
+
+.icon-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.icon-btn:hover {
+  color: #dc2626;
+}
+
+.column-body {
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.card-notes {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #57606a;
+  white-space: pre-wrap;
+}
+
+.card-due {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  background: #fef3c7;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.card-placeholder {
+  height: 8px;
+  border-radius: 4px;
+  background: #2563eb;
+  opacity: 0.5;
+}
+
+.add-card {
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #57606a;
+  text-align: left;
+}
+
+.add-card:hover,
+.add-column:hover {
+  background: #dfe1e6;
+}
+
+.add-column {
+  border: none;
+  background: #dfe1e6;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  color: #1f2328;
+  flex-shrink: 0;
+}
+
+.card-dialog {
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+  width: 380px;
+  max-width: 90vw;
+}
+
+.card-dialog form {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-dialog h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.card-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.card-dialog input,
+.card-dialog textarea {
+  font: inherit;
+  font-weight: 400;
+  padding: 6px 8px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.dialog-actions button {
+  border: 1px solid #d0d7de;
+  background: #f6f8fa;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.dialog-actions .primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
