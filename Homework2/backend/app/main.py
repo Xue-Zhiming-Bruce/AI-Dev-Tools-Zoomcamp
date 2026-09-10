@@ -7,6 +7,7 @@ for a real database in issue #13.
 from datetime import date
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app import store
@@ -17,6 +18,14 @@ app = FastAPI(
     description="Backend for the MyKanban personal Kanban board. "
     "The committed openapi.yaml is the reviewed contract (issue #9).",
     version="0.1.0",
+)
+
+# Allow the Vite dev server origin (issue #12). The only backend change in #12.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
