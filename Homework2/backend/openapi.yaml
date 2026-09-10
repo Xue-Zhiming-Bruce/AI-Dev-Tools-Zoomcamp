@@ -1,0 +1,328 @@
+openapi: 3.1.0
+info:
+  title: MyKanban API
+  description: >
+    Contract for the MyKanban personal Kanban board backend (issue #9).
+    Cards embed column_id. Due dates are optional ISO YYYY-MM-DD. Ids are integers.
+    Frontend mocks must mirror these paths and payloads.
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /columns:
+    get:
+      operationId: listColumns
+      summary: List columns with their cards, ordered
+      responses:
+        "200":
+          description: Ordered list of columns, each with its ordered cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Column"
+    post:
+      operationId: createColumn
+      summary: Create a column
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ColumnCreate"
+      responses:
+        "201":
+          description: Column created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Column"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /columns/reorder:
+    post:
+      operationId: reorderColumns
+      summary: Set the full column order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ColumnReorder"
+      responses:
+        "200":
+          description: Reordered columns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Column"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /columns/{column_id}:
+    patch:
+      operationId: renameColumn
+      summary: Rename a column
+      parameters:
+        - $ref: "#/components/parameters/ColumnId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ColumnUpdate"
+      responses:
+        "200":
+          description: Renamed column
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Column"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      operationId: deleteColumn
+      summary: Delete a column and its cards
+      parameters:
+        - $ref: "#/components/parameters/ColumnId"
+      responses:
+        "204":
+          description: Column and its cards deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /columns/{column_id}/cards:
+    post:
+      operationId: createCard
+      summary: Create a card in a column
+      parameters:
+        - $ref: "#/components/parameters/ColumnId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardCreate"
+      responses:
+        "201":
+          description: Card created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /cards/{card_id}:
+    patch:
+      operationId: updateCard
+      summary: Edit a card (title, notes, due_date)
+      parameters:
+        - $ref: "#/components/parameters/CardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardUpdate"
+      responses:
+        "200":
+          description: Updated card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      operationId: deleteCard
+      summary: Delete a card
+      parameters:
+        - $ref: "#/components/parameters/CardId"
+      responses:
+        "204":
+          description: Card deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /cards/{card_id}/move:
+    post:
+      operationId: moveCard
+      summary: Move a card to a position in a column (covers cross-column moves and within-column reorder)
+      parameters:
+        - $ref: "#/components/parameters/CardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardMove"
+      responses:
+        "200":
+          description: Moved card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+components:
+  parameters:
+    ColumnId:
+      name: column_id
+      in: path
+      required: true
+      schema:
+        type: integer
+    CardId:
+      name: card_id
+      in: path
+      required: true
+      schema:
+        type: integer
+  responses:
+    ValidationError:
+      description: Request body or parameters invalid (standard FastAPI shape)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationError"
+    NotFound:
+      description: Resource not found (standard FastAPI detail shape)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Card:
+      type: object
+      required: [id, column_id, title]
+      properties:
+        id:
+          type: integer
+        column_id:
+          type: integer
+        title:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        due_date:
+          type: string
+          format: date
+          nullable: true
+    CardCreate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        notes:
+          type: string
+        due_date:
+          type: string
+          format: date
+    CardUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        due_date:
+          type: string
+          format: date
+          nullable: true
+    CardMove:
+      type: object
+      required: [column_id, position]
+      properties:
+        column_id:
+          type: integer
+        position:
+          type: integer
+    Column:
+      type: object
+      required: [id, title, position, cards]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        position:
+          type: integer
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+    ColumnCreate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+    ColumnUpdate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+    ColumnReorder:
+      type: object
+      required: [column_ids]
+      properties:
+        column_ids:
+          type: array
+          items:
+            type: integer
+    Error:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+    ValidationError:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: array
+          items:
+            $ref: "#/components/schemas/ValidationErrorItem"
+    ValidationErrorItem:
+      type: object
+      required: [loc, msg, type]
+      properties:
+        loc:
+          type: array
+          items: {}
+        msg:
+          type: string
+        type:
+          type: string
