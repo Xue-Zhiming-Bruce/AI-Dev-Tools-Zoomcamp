@@ -4,6 +4,7 @@ Thin handlers: all state logic lives in app.store so the store can be swapped
 for a real database in issue #13.
 """
 
+from contextlib import asynccontextmanager
 from datetime import date
 
 from fastapi import FastAPI, HTTPException
@@ -13,11 +14,19 @@ from pydantic import BaseModel, Field
 from app import store
 from app.store import NotFoundError, ReorderError
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    store.create_schema()
+    store.seed_if_empty()
+    yield
+
+
 app = FastAPI(
     title="MyKanban API",
     description="Backend for the MyKanban personal Kanban board. "
     "The committed openapi.yaml is the reviewed contract (issue #9).",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # Allow the Vite dev server origin (issue #12). The only backend change in #12.
