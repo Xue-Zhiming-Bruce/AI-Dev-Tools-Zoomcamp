@@ -1,4 +1,4 @@
-# Mini Kanban — Plan
+# MyKanban — Plan
 
 ## Goal
 

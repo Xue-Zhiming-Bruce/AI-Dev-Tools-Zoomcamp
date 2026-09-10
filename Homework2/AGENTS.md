@@ -1,4 +1,4 @@
-# Mini Kanban (Homework 2)
+# MyKanban (Homework 2)
 
 Commands
 - Backend: `cd backend && uv run uvicorn app.main:app --reload` (once backend exists)

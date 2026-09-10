@@ -1,4 +1,4 @@
-# Mini Kanban — Specification
+# MyKanban — Specification
 
 A single-page Kanban board for one person to track their own tasks.
 
