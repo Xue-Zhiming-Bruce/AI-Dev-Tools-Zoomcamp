@@ -32,15 +32,12 @@ export default function Column({
   function cardDragOver(event) {
     if (event.dataTransfer.types.includes('text/column')) return
     event.preventDefault()
-    const cards = column.cards
-    let index = cards.length
-    for (let i = 0; i < cards.length; i++) {
-      const rect = event.currentTarget.closest('.card-slot')?.getBoundingClientRect()
-      if (!rect) break
-      if (event.clientY < rect.top + rect.height / 2) {
-        index = i
-        break
-      }
+    // Drop index = number of rendered cards whose midpoint is above the pointer.
+    const cardEls = event.currentTarget.querySelectorAll('.card')
+    let index = 0
+    for (const cardEl of cardEls) {
+      const rect = cardEl.getBoundingClientRect()
+      if (event.clientY >= rect.top + rect.height / 2) index += 1
     }
     setCardDropIndex(index)
   }
