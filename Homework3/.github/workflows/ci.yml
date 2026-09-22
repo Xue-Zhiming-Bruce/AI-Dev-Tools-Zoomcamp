@@ -1,0 +1,67 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      RELAY_DATABASE_URL: postgresql+psycopg://relay:relay@127.0.0.1:55432/relay
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Start PostgreSQL
+        run: |
+          docker rm -f relay-ci-postgres 2>/dev/null || true
+          docker run -d --name relay-ci-postgres \
+            -e POSTGRES_USER=relay -e POSTGRES_PASSWORD=relay -e POSTGRES_DB=relay \
+            -p 55432:5432 postgres:17-alpine
+          for i in $(seq 1 60); do
+            docker exec relay-ci-postgres pg_isready -U relay -d relay && break
+            sleep 1
+          done
+
+      - name: Starter tests
+        run: uv run pytest test_agent_relay.py -q
+
+      - name: Integration test against PostgreSQL
+        run: |
+          uv run uvicorn main:app --port 8000 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8000/ready && break; sleep 1; done
+          RELAY_BASE_URL=http://127.0.0.1:8000 uv run pytest test_integration.py -q
+
+      - name: Build image
+        run: |
+          docker build -t agent-relay:${GITHUB_SHA::8} .
+          echo "IMAGE=agent-relay:${GITHUB_SHA::8}" >> "$GITHUB_ENV"
+
+      # Deploy only runs if every test step above passed.
+      - name: Deploy to kind
+        env:
+          IMAGE: ${{ env.IMAGE }}
+        run: |
+          # kubectl/kind are already on the host (act -self-hosted runs natively);
+          # install them if missing.
+          command -v kubectl >/dev/null || { curl -Lso /tmp/kubectl https://dl.k8s.io/release/v1.32.2/bin/darwin/arm64/kubectl && chmod +x /tmp/kubectl && sudo mv /tmp/kubectl /usr/local/bin/kubectl; }
+          command -v kind >/dev/null || { curl -Lso /tmp/kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-darwin-arm64 && chmod +x /tmp/kind && sudo mv /tmp/kind /usr/local/bin/kind; }
+          # On real GitHub runners the kubeconfig is created in-cluster; locally
+          # we reuse the host kind cluster. act injects a bogus KUBECONFIG, so
+          # prefer the host config when it exists.
+          [ -f "$HOME/.kube/config" ] && export KUBECONFIG="$HOME/.kube/config"
+          kubectl config current-context
+          kind get clusters
+          kind load docker-image "$IMAGE" --name agent-relay
+          kubectl set image deployment/agent-relay relay="$IMAGE"
+          kubectl rollout status deployment/agent-relay --timeout=180s
+          kubectl get pods
