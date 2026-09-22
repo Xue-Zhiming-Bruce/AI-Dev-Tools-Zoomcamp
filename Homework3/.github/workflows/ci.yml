@@ -55,6 +55,11 @@ jobs:
           # install them if missing.
           command -v kubectl >/dev/null || { curl -Lso /tmp/kubectl https://dl.k8s.io/release/v1.32.2/bin/darwin/arm64/kubectl && chmod +x /tmp/kubectl && sudo mv /tmp/kubectl /usr/local/bin/kubectl; }
           command -v kind >/dev/null || { curl -Lso /tmp/kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-darwin-arm64 && chmod +x /tmp/kind && sudo mv /tmp/kind /usr/local/bin/kind; }
+          # GitHub-hosted runners have no kind cluster; deploys run locally via act.
+          if [ ! -f "$HOME/.kube/config" ]; then
+            echo "No kind cluster here (GitHub-hosted runner) — tests and image build verified; kind deploy runs locally via act."
+            exit 0
+          fi
           # On real GitHub runners the kubeconfig is created in-cluster; locally
           # we reuse the host kind cluster. act injects a bogus KUBECONFIG, so
           # prefer the host config when it exists.
